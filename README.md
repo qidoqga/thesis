@@ -1,8 +1,8 @@
-# Ivaldi
+
 
 
 ## Description
-Ivaldi is an application for working with string diagrams. It also allows the user to create domain-specific languages.
+This is an application for working with string diagrams. It also allows the user to create domain-specific languages.
 
 ## Usage
 To use this application you have to do the following:
@@ -19,7 +19,3 @@ TBD
 ## Authors and acknowledgment
 Project was initially started by Peeter Maran and Anton Osvald Kuusk and then given to us.
 
-Authors:
-    
-    Mark Dzotsenidze
-    Markus Vrager
