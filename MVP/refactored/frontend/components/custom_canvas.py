@@ -622,9 +622,12 @@ class CustomCanvas(tk.Canvas):
         self.current_wire_start = None
         self.current_wire = None
 
-    def add_box(self, loc=(100, 100), size=(60, 60), id_=None, shape=None):
+    def add_box(self, loc=(100, 100), size=(60, 60), id_=None, shape=None, label=""):
         if shape is None:
             shape = self.box_shape
+        layer_labels = {"input dense layer", "dense layer", "output dense layer"}
+        if label in layer_labels:
+            size = (250, 200)
         box = Box(self, *loc, self.receiver, size=size, id_=id_, shape=shape)
         self.boxes.append(box)
         return box
@@ -638,7 +641,8 @@ class CustomCanvas(tk.Canvas):
     def get_box_function(self, box_id) -> BoxFunction | None:
         box = self.get_box_by_id(box_id)
         if box:
-            return BoxFunction(box.label_text, code=self.main_diagram.label_content[box.label_text])
+            return getattr(box, 'box_function', None)
+            # return BoxFunction(box.label_text, code=self.main_diagram.label_content[box.label_text])
         return None
 
     def add_spider(self, loc=(100, 100), id_=None):

@@ -9,6 +9,7 @@ from MVP.refactored.backend.hypergraph.hypergraph import Hypergraph
 from MVP.refactored.backend.hypergraph.hypergraph_manager import HypergraphManager
 from MVP.refactored.backend.hypergraph.node import Node
 from MVP.refactored.frontend.components.custom_canvas import CustomCanvas
+from MVP.refactored.backend.box_functions.box_function import functions as predefined_functions
 
 
 class CodeGenerator:
@@ -40,14 +41,23 @@ class CodeGenerator:
         return autopep8.fix_code(file_content)
 
     @classmethod
-    def get_all_code_parts(cls, canvas: CustomCanvas, canvasses: dict[str, CustomCanvas], main_diagram) -> dict[
-                            BoxFunction, list[int]]:
+    def get_all_code_parts(cls, canvas: CustomCanvas, canvasses: dict[str, CustomCanvas], main_diagram) -> \
+            dict[BoxFunction, list[int]]:
         code_parts: dict[BoxFunction, list[int]] = dict()
         for box in canvas.boxes:
             if str(box.id) in canvasses:
                 code_parts.update(cls.get_all_code_parts(canvasses.get(str(box.id)), canvasses, main_diagram))
             else:
-                box_function = BoxFunction(box.label_text, code=main_diagram.label_content[box.label_text])
+                code_template = main_diagram.label_content[box.label_text]
+                substitution_dict = {}
+                print(box.label_text)
+                print("#############################")
+                if "layer" in box.label_text:
+                    substitution_dict = {'neurons': box.neurons, 'activation': box.activation, 'inputs': box.inputs,
+                                         'optimizer': box.optimizer, 'loss': box.loss, 'metrics': box.metrics,
+                                         'outputs': box.outputs}
+                box_function = BoxFunction(box.label_text, code=code_template, substitution_dict=substitution_dict)
+                box.box_function = box_function
                 if box_function in code_parts:
                     code_parts[box_function].append(box.id)
                 else:

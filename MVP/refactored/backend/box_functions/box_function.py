@@ -18,8 +18,18 @@ def get_predefined_functions() -> dict:
 functions = get_predefined_functions()
 
 
+def safe_format(code: str, substitution_dict: dict) -> str:
+    """
+    Replace only the keys provided in substitution_dict in the code template.
+    This avoids processing other curly-brace literals (like those in the meta dictionary).
+    """
+    for key, value in substitution_dict.items():
+        code = code.replace("{" + key + "}", str(value))
+    return code
+
+
 class BoxFunction:
-    def __init__(self, name, code=None):
+    def __init__(self, name, code=None, substitution_dict=None):
         self.name = name
         if name in functions:
             self.code: str = functions[name]
@@ -27,6 +37,11 @@ class BoxFunction:
             self.code: str = code
         else:
             raise ValueError("Should be specified function code or name of predefined function")
+        if substitution_dict:
+            try:
+                self.code = safe_format(self.code, substitution_dict)
+            except Exception as e:
+                raise ValueError(f"Error formatting code for {name}: {e}")
         local = {}
         exec(self.code, {}, local)
         self.function = local["invoke"]

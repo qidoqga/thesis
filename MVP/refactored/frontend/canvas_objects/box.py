@@ -26,6 +26,8 @@ class Box:
         self.right_connections = 0
         self.label = None
         self.label_text = ""
+        self.overlay = None
+        self.overlay_text = ""
         self.wires = []
         if not id_:
             self.id = id(self)
@@ -51,6 +53,13 @@ class Box:
         self.is_snapped = False
 
         self.collision_ids = [self.rect, self.resize_handle]
+        self.neurons = 32
+        self.activation = 'relu'
+        self.inputs = 10
+        self.optimizer = 'adam'
+        self.loss = 'binary_crossentropy'
+        self.metrics = ['accuracy']
+        self.outputs = 1
 
     def set_id(self, id_):
         if self.receiver.listener and not self.canvas.search:
@@ -102,6 +111,13 @@ class Box:
             self.context_menu.add_command(label="Edit Sub-Diagram", command=self.edit_sub_diagram)
             self.context_menu.add_command(label="Unfold sub-diagram", command=self.unfold)
             self.context_menu.add_command(label="Lock Box", command=self.lock_box)
+            if "input dense layer" in self.label_text:
+                self.context_menu.add_command(label="Edit Properties", command=self.open_input_layer_editor)
+            elif "output dense layer" in self.label_text:
+                self.context_menu.add_command(label="Edit Properties", command=self.open_output_layer_editor)
+            elif "dense layer" in self.label_text:
+                self.context_menu.add_command(label="Edit Properties", command=self.open_middle_layer_editor)
+
         self.context_menu.add_command(label="Save Box to Menu", command=self.save_box_to_menu)
         if self.sub_diagram:
             self.context_menu.add_command(label="Delete Box", command=lambda: self.delete_box(action="sub_diagram"))
@@ -361,8 +377,36 @@ class Box:
             self.move_label()
 
     def move_label(self):
-        if self.label:
-            self.canvas.coords(self.label, self.x + self.size[0] / 2, self.y + self.size[1] / 2)
+        if not self.label:
+            return
+
+        layer_labels = {"input dense layer", "dense layer", "output dense layer"}
+        if self.label_text in layer_labels:
+            self.canvas.coords(
+                self.label,
+                self.x + self.size[0] / 2,
+                self.y + 10  # 10 pixels from the top edge of the box
+            )
+
+            if self.overlay:
+                label_bbox = self.canvas.bbox(self.label)
+                if label_bbox:
+                    x_center = (label_bbox[0] + label_bbox[2]) / 2
+                    label_bottom = label_bbox[3]
+
+                    overlay_bbox = self.canvas.bbox(self.overlay)
+                    if overlay_bbox:
+                        overlay_height = overlay_bbox[3] - overlay_bbox[1]
+                        overlay_center_y = label_bottom + 5 + overlay_height / 2
+                        self.canvas.coords(self.overlay, x_center, overlay_center_y)
+                    else:
+                        self.canvas.coords(self.overlay, x_center, self.y + 60)
+        else:
+            self.canvas.coords(
+                self.label,
+                self.x + self.size[0] / 2,
+                self.y + self.size[1] / 2
+            )
 
     def bind_event_label(self):
         self.canvas.tag_bind(self.label, '<B1-Motion>', self.on_drag)
@@ -401,15 +445,205 @@ class Box:
 
         self.bind_event_label()
 
+    def open_middle_layer_editor(self):
+        editor = tk.Toplevel(self.canvas)
+        editor.title("Edit Middle Layer Properties")
+        editor.grab_set()
+
+        tk.Label(editor, text="Neurons:").grid(row=0, column=0, padx=5, pady=5, sticky="e")
+        neurons_var = tk.StringVar(value=str(self.neurons))
+        neurons_entry = tk.Entry(editor, textvariable=neurons_var)
+        neurons_entry.grid(row=0, column=1, padx=5, pady=5)
+
+        tk.Label(editor, text="Activation:").grid(row=1, column=0, padx=5, pady=5, sticky="e")
+        activation_var = tk.StringVar(value=self.activation)
+        activation_entry = tk.Entry(editor, textvariable=activation_var)
+        activation_entry.grid(row=1, column=1, padx=5, pady=5)
+
+        def save_properties():
+            try:
+                new_neurons = int(neurons_var.get())
+            except ValueError:
+                messagebox.showerror("Invalid Value", "Neurons must be an integer.")
+                return
+            new_activation = activation_var.get().strip()
+            if not new_activation:
+                messagebox.showerror("Invalid Value", "Activation function cannot be empty.")
+                return
+
+            self.neurons = new_neurons
+            self.activation = new_activation
+
+            self.change_label()
+            editor.destroy()
+
+        save_btn = tk.Button(editor, text="Save", command=save_properties)
+        save_btn.grid(row=2, column=0, columnspan=2, pady=10)
+
+    def open_input_layer_editor(self):
+        editor = tk.Toplevel(self.canvas)
+        editor.title("Edit Input Layer Properties")
+        editor.grab_set()
+
+        tk.Label(editor, text="Inputs:").grid(row=0, column=0, padx=5, pady=5, sticky="e")
+        inputs_var = tk.StringVar(value=str(self.inputs))
+        inputs_entry = tk.Entry(editor, textvariable=inputs_var)
+        inputs_entry.grid(row=0, column=1, padx=5, pady=5)
+
+        tk.Label(editor, text="Neurons:").grid(row=1, column=0, padx=5, pady=5, sticky="e")
+        neurons_var = tk.StringVar(value=str(self.neurons))
+        neurons_entry = tk.Entry(editor, textvariable=neurons_var)
+        neurons_entry.grid(row=1, column=1, padx=5, pady=5)
+
+        tk.Label(editor, text="Activation:").grid(row=2, column=0, padx=5, pady=5, sticky="e")
+        activation_var = tk.StringVar(value=self.activation)
+        activation_entry = tk.Entry(editor, textvariable=activation_var)
+        activation_entry.grid(row=2, column=1, padx=5, pady=5)
+
+        def save_inputs():
+            try:
+                new_inputs = int(inputs_var.get())
+            except ValueError:
+                messagebox.showerror("Invalid Value", "Inputs must be an integer.")
+                return
+            try:
+                new_neurons = int(neurons_var.get())
+            except ValueError:
+                messagebox.showerror("Invalid Value", "Neurons must be an integer.")
+                return
+            new_activation = activation_var.get().strip()
+            if not new_activation:
+                messagebox.showerror("Invalid Value", "Activation function cannot be empty.")
+                return
+
+            self.inputs = new_inputs
+            self.neurons = new_neurons
+            self.activation = new_activation
+
+            self.change_label()
+            editor.destroy()
+
+        save_btn = tk.Button(editor, text="Save", command=save_inputs)
+        save_btn.grid(row=3, column=0, columnspan=2, pady=10)
+
+    def open_output_layer_editor(self):
+        editor = tk.Toplevel(self.canvas)
+        editor.title("Edit Output Layer Properties")
+        editor.grab_set()
+
+        tk.Label(editor, text="Output Neurons:").grid(row=0, column=0, padx=5, pady=5, sticky="e")
+        output_neurons_var = tk.StringVar(value=str(self.outputs))
+        output_neurons_entry = tk.Entry(editor, textvariable=output_neurons_var)
+        output_neurons_entry.grid(row=0, column=1, padx=5, pady=5)
+
+        tk.Label(editor, text="Activation:").grid(row=1, column=0, padx=5, pady=5, sticky="e")
+        activation_var = tk.StringVar(value=self.activation)
+        activation_entry = tk.Entry(editor, textvariable=activation_var)
+        activation_entry.grid(row=1, column=1, padx=5, pady=5)
+
+        tk.Label(editor, text="Optimizer:").grid(row=2, column=0, padx=5, pady=5, sticky="e")
+        optimizer_var = tk.StringVar(value=self.optimizer)
+        optimizer_entry = tk.Entry(editor, textvariable=optimizer_var)
+        optimizer_entry.grid(row=2, column=1, padx=5, pady=5)
+
+        tk.Label(editor, text="Loss Function:").grid(row=3, column=0, padx=5, pady=5, sticky="e")
+        loss_var = tk.StringVar(value=self.loss)
+        loss_entry = tk.Entry(editor, textvariable=loss_var)
+        loss_entry.grid(row=3, column=1, padx=5, pady=5)
+
+        # (entered as a comma-separated string)
+        tk.Label(editor, text="Metrics (comma separated):").grid(row=4, column=0, padx=5, pady=5, sticky="e")
+        metrics_str = ", ".join(self.metrics) if self.metrics else ""
+        metrics_var = tk.StringVar(value=metrics_str)
+        metrics_entry = tk.Entry(editor, textvariable=metrics_var)
+        metrics_entry.grid(row=4, column=1, padx=5, pady=5)
+
+        def save_inputs():
+            try:
+                new_output_neurons = int(output_neurons_var.get())
+            except ValueError:
+                messagebox.showerror("Invalid Value", "Neurons must be an integer.")
+                return
+            new_activation = activation_var.get().strip()
+            if not new_activation:
+                messagebox.showerror("Invalid Value", "Activation function cannot be empty.")
+                return
+
+            new_optimizer = optimizer_var.get().strip()
+            if not new_optimizer:
+                messagebox.showerror("Invalid Value", "Optimizer cannot be empty.")
+                return
+
+            new_loss = loss_var.get().strip()
+            if not new_loss:
+                messagebox.showerror("Invalid Value", "Loss function cannot be empty.")
+                return
+
+            new_metrics_str = metrics_var.get().strip()
+            new_metrics = [m.strip() for m in new_metrics_str.split(',')] if new_metrics_str else []
+
+            self.outputs = new_output_neurons
+            self.activation = new_activation
+            self.optimizer = new_optimizer
+            self.loss = new_loss
+            self.metrics = new_metrics
+
+            self.change_label()
+            editor.destroy()
+
+        save_btn = tk.Button(editor, text="Save", command=save_inputs)
+        save_btn.grid(row=5, column=0, columnspan=2, pady=10)
+
     def change_label(self):
         if self.receiver.listener and not self.canvas.search:
             self.receiver.receiver_callback("box_add_operator", generator_id=self.id, operator=self.label_text)
-        if not self.label:
-            self.label = self.canvas.create_text((self.x + self.size[0] / 2, self.y + self.size[1] / 2),
-                                                 text=self.label_text, fill="black", font=('Helvetica', 14))
-            self.collision_ids.append(self.label)
+
+        layer_labels = {"input dense layer", "dense layer", "output dense layer"}
+        if self.label_text in layer_labels:
+            if not self.label:
+                self.label = self.canvas.create_text(
+                    self.x + self.size[0] / 2,
+                    self.y + self.size[1] / 2 + 10,
+                    text=self.label_text, fill="black", font=('Helvetica', 14)
+                )
+                self.collision_ids.append(self.label)
+            else:
+                self.canvas.itemconfig(self.label, text=self.label_text, font=('Helvetica', 14))
+
+            self.overlay_text = self.get_overlay_text()
+            if self.overlay is None:
+                self.overlay = self.canvas.create_text(
+                    self.x + self.size[0] / 2,
+                    self.y + 60,
+                    text=self.overlay_text,
+                    fill="black",
+                    font=('Helvetica', 10)
+                )
+                self.collision_ids.append(self.overlay)
+            else:
+                self.canvas.itemconfig(self.overlay, text=self.overlay_text, font=('Helvetica', 10))
+            self.move_label()
         else:
-            self.canvas.itemconfig(self.label, text=self.label_text)
+
+            if not self.label:
+                self.label = self.canvas.create_text((self.x + self.size[0] / 2, self.y + self.size[1] / 2),
+                                                     text=self.label_text, fill="black", font=('Helvetica', 14))
+                self.collision_ids.append(self.label)
+            else:
+                self.canvas.itemconfig(self.label, text=self.label_text)
+            if self.overlay is not None:
+                self.canvas.delete(self.overlay)
+                self.overlay = None
+                self.overlay_text = ""
+
+    def get_overlay_text(self):
+        if self.label_text == "dense layer":
+            return f"Neurons: {self.neurons}\nActivation: {self.activation}"
+        elif self.label_text == "input dense layer":
+            return f"Input Neurons: {self.inputs}\nNeurons: {self.neurons}\nActivation: {self.activation}"
+        elif self.label_text == "output dense layer":
+            return f"Output Neurons: {self.outputs}\nActivation: {self.activation}\nOptimizer: {self.optimizer}\n" \
+                   f"Loss Function: {self.loss}\nMetrics: {self.metrics}"
 
     def set_label(self, new_label):
         self.label_text = new_label

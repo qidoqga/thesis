@@ -1,5 +1,12 @@
 {
     "method1": "def method1(x1):\n    return (x1)",
     "test": "def invoke(x) -> list:\n    return [x, x]\n\n\nmeta = {\n    \"name\": \"Copy\",\n    \"min_args\": 1,\n    \"max_args\": 1\n}",
-    "method2": "def method2(x2):\n    return (x2)"
+    "method2": "def method2(x2):\n    return (x2)",
+    "Add": "def Add(x0, x1):\n\ty0 = x0 + x1\n\treturn (y0)",
+    "add": "def add(x0, x1):\n    return (y0)",
+    "sub": "def sub(x0, x1):\n\ty0 = x0 - x1\n\treturn (y0)",
+    "subtract": "",
+    "dense layer": "def denselayer(x0):\n\treturn (y0)",
+    "input dense layer": "def inputdenselayer(x0):\n\treturn (y0)",
+    "output dense layer": "def outputdenselayer(x0):\n\treturn (y0)"
 }

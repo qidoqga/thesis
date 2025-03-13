@@ -981,5 +981,26 @@
             },
             "wires": []
         }
+    },
+    "input dense layer": {
+        "label": "input dense layer",
+        "left_c": 1,
+        "right_c": 1,
+        "shape": "rectangle",
+        "sub_diagram": null
+    },
+    "dense layer": {
+        "label": "dense layer",
+        "left_c": 1,
+        "right_c": 1,
+        "shape": "rectangle",
+        "sub_diagram": null
+    },
+    "output dense layer": {
+        "label": "output dense layer",
+        "left_c": 1,
+        "right_c": 1,
+        "shape": "rectangle",
+        "sub_diagram": null
     }
 }
