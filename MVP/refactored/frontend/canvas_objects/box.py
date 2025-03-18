@@ -61,6 +61,10 @@ class Box:
         self.metrics = ['accuracy']
         self.outputs = 1
 
+        self.num_heads = 8
+        self.num_encoder_layers = 3
+        self.num_decoder_layers = 3
+
     def set_id(self, id_):
         if self.receiver.listener and not self.canvas.search:
             self.receiver.receiver_callback("box_swap_id", generator_id=self.id, connection_id=id_)
@@ -84,6 +88,12 @@ class Box:
 
     def show_context_menu(self, event):
         self.close_menu()
+        if self.context_menu is not None:
+            try:
+                self.context_menu.destroy()
+                print("menu destroyed")
+            except Exception as e:
+                print("Error destroying menu:", e)
         self.context_menu = tk.Menu(self.canvas, tearoff=0)
 
         if not self.sub_diagram:
@@ -117,6 +127,8 @@ class Box:
                 self.context_menu.add_command(label="Edit Properties", command=self.open_output_layer_editor)
             elif "dense layer" in self.label_text:
                 self.context_menu.add_command(label="Edit Properties", command=self.open_middle_layer_editor)
+            elif "transformer 2" in self.label_text:
+                self.context_menu.add_command(label="Edit Properties", command=self.open_transformer_layer_editor)
 
         self.context_menu.add_command(label="Save Box to Menu", command=self.save_box_to_menu)
         if self.sub_diagram:
@@ -594,6 +606,53 @@ class Box:
         save_btn = tk.Button(editor, text="Save", command=save_inputs)
         save_btn.grid(row=5, column=0, columnspan=2, pady=10)
 
+    def open_transformer_layer_editor(self):
+        editor = tk.Toplevel(self.canvas)
+        editor.title("Edit Transformer Layer Properties")
+        editor.grab_set()
+
+        tk.Label(editor, text="Number of Heads:").grid(row=0, column=0, padx=5, pady=5, sticky="e")
+        num_heads_var = tk.StringVar(value=str(self.num_heads))
+        num_heads_entry = tk.Entry(editor, textvariable=num_heads_var)
+        num_heads_entry.grid(row=0, column=1, padx=5, pady=5)
+
+        tk.Label(editor, text="Number of Encoder Layers:").grid(row=1, column=0, padx=5, pady=5, sticky="e")
+        encoder_layers_var = tk.StringVar(value=str(self.num_encoder_layers))
+        encoder_layers_entry = tk.Entry(editor, textvariable=encoder_layers_var)
+        encoder_layers_entry.grid(row=1, column=1, padx=5, pady=5)
+
+        tk.Label(editor, text="Number of Decoder Layers:").grid(row=2, column=0, padx=5, pady=5, sticky="e")
+        decoder_layers_var = tk.StringVar(value=str(self.num_decoder_layers))
+        decoder_layers_entry = tk.Entry(editor, textvariable=decoder_layers_var)
+        decoder_layers_entry.grid(row=2, column=1, padx=5, pady=5)
+
+        def save_inputs():
+            try:
+                new_num_heads = int(num_heads_var.get())
+            except ValueError:
+                messagebox.showerror("Invalid Value", "Number of heads must be an integer.")
+                return
+            try:
+                new_encoder_layers = int(encoder_layers_var.get())
+            except ValueError:
+                messagebox.showerror("Invalid Value", "Number of encoder layers must be an integer.")
+                return
+            try:
+                new_decoder_layers = int(decoder_layers_var.get())
+            except ValueError:
+                messagebox.showerror("Invalid Value", "Number of decoder layers must be an integer.")
+                return
+
+            self.num_heads = new_num_heads
+            self.num_encoder_layers = new_encoder_layers
+            self.num_decoder_layers = new_decoder_layers
+
+            self.change_label()
+            editor.destroy()
+
+        save_btn = tk.Button(editor, text="Save", command=save_inputs)
+        save_btn.grid(row=3, column=0, columnspan=2, pady=10)
+
     def change_label(self):
         if self.receiver.listener and not self.canvas.search:
             self.receiver.receiver_callback("box_add_operator", generator_id=self.id, operator=self.label_text)
@@ -814,7 +873,9 @@ class Box:
 
         self.canvas.delete(self.rect)
         self.canvas.delete(self.resize_handle)
-
+        layer_labels = {"input dense layer", "dense layer", "output dense layer"}
+        if self.label_text in layer_labels:
+            self.canvas.delete(self.overlay)
         if self in self.canvas.boxes:
             self.canvas.boxes.remove(self)
         self.canvas.delete(self.label)

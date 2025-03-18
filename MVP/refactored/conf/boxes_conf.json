@@ -1002,5 +1002,103 @@
         "right_c": 1,
         "shape": "rectangle",
         "sub_diagram": null
+    },
+    "embedding layer": {
+        "label": "embedding layer",
+        "left_c": 2,
+        "right_c": 1,
+        "shape": "rectangle",
+        "sub_diagram": null
+    },
+    "positional encoding": {
+        "label": "positional encoding",
+        "left_c": 1,
+        "right_c": 1,
+        "shape": "rectangle",
+        "sub_diagram": null
+    },
+    "test embedding layer": {
+        "label": "test embedding layer",
+        "left_c": 2,
+        "right_c": 1,
+        "shape": "rectangle",
+        "sub_diagram": null
+    },
+    "test positional encoding layer": {
+        "label": "test positional encoding layer",
+        "left_c": 1,
+        "right_c": 1,
+        "shape": "rectangle",
+        "sub_diagram": null
+    },
+    "test transformer layer": {
+        "label": "test transformer layer",
+        "left_c": 4,
+        "right_c": 1,
+        "shape": "rectangle",
+        "sub_diagram": null
+    },
+    "test linear layer": {
+        "label": "test linear layer",
+        "left_c": 2,
+        "right_c": 1,
+        "shape": "rectangle",
+        "sub_diagram": null
+    },
+    "test transformer model": {
+        "label": "test transformer model",
+        "left_c": 5,
+        "right_c": 1,
+        "shape": "rectangle",
+        "sub_diagram": null
+    },
+    "builder test": {
+        "label": "builder test",
+        "left_c": 1,
+        "right_c": 1,
+        "shape": "rectangle",
+        "sub_diagram": null
+    },
+    "builder embedding": {
+        "label": "builder embedding",
+        "left_c": 3,
+        "right_c": 1,
+        "shape": "rectangle",
+        "sub_diagram": null
+    },
+    "builder positional encoding": {
+        "label": "builder positional encoding",
+        "left_c": 2,
+        "right_c": 1,
+        "shape": "rectangle",
+        "sub_diagram": null
+    },
+    "builder transformer": {
+        "label": "builder transformer",
+        "left_c": 5,
+        "right_c": 1,
+        "shape": "rectangle",
+        "sub_diagram": null
+    },
+    "builder linear": {
+        "label": "builder linear",
+        "left_c": 3,
+        "right_c": 1,
+        "shape": "rectangle",
+        "sub_diagram": null
+    },
+    "builder transformer model": {
+        "label": "builder transformer model",
+        "left_c": 1,
+        "right_c": 1,
+        "shape": "rectangle",
+        "sub_diagram": null
+    },
+    "builder transformer 2": {
+        "label": "builder transformer 2",
+        "left_c": 2,
+        "right_c": 1,
+        "shape": "rectangle",
+        "sub_diagram": null
     }
 }

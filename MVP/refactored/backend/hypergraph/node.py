@@ -5,7 +5,7 @@ from importlib import import_module
 
 class Node:
 
-    def __init__(self, node_id=None, inputs=None, outputs=None):
+    def __init__(self, node_id=None, inputs=None, outputs=None, is_spider=False):
         if node_id is None:
             node_id = id(self)
         if inputs is None:
@@ -15,6 +15,7 @@ class Node:
         self.id = node_id
         self.inputs = inputs
         self.outputs = outputs
+        self.is_spider = is_spider
 
     def get_children(self):
         module = import_module("MVP.refactored.backend.hypergraph.hypergraph_manager")

@@ -45,6 +45,16 @@ class HypergraphManager:
                 elif connection.has_wire:
                     node.add_output(connection.wire.id)
             hypergraph.add_node(node)
+        for spider in canvas.spiders:
+            spider_inputs = []
+            spider_outputs = []
+            for wire in spider.wires:
+                if wire.end_connection == spider:
+                    spider_inputs.append(wire.id)
+                elif wire.start_connection == spider:
+                    spider_outputs.append(wire.id)
+            node = Node(spider.id, inputs=spider_inputs, outputs=spider_outputs, is_spider=True)
+            hypergraph.add_node(node)
 
         if hypergraph.is_valid():
             HypergraphManager.hypergraphs.append(hypergraph)

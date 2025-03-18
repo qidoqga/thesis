@@ -17,3 +17,4 @@ tikzplotlib~=0.10.1
 tensorflow~=2.18.0
 torch~=2.6.0
 torchviz~=0.0.3
+torchinfo~=1.8.0

@@ -19,7 +19,8 @@ class Connection:
             self.id = id_
         self.node = None
 
-        self.context_menu = tk.Menu(self.canvas, tearoff=0)
+        # self.context_menu = tk.Menu(self.canvas, tearoff=0)
+        self.context_menu = None
 
         self.circle = self.canvas.create_oval(location[0] - self.r, location[1] - self.r, location[0] + self.r,
                                               location[1] + self.r, fill="black", outline="black")
@@ -40,8 +41,14 @@ class Connection:
             self.context_menu.post(event.x_root, event.y_root)
 
     def close_menu(self):
-        if self.context_menu:
-            self.context_menu.destroy()
+        # if self.context_menu:
+        #     self.context_menu.destroy()
+        if self.context_menu is not None:
+            try:
+                self.context_menu.destroy()
+            except Exception as e:
+                print("Error destroying menu:", e)
+            self.context_menu = None
 
     def manually_delete_self(self):
         if self.box:
