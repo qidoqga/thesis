@@ -4,14 +4,20 @@ from inspect import signature
 
 def get_predefined_functions() -> dict:
     predefined_functions = {}
-    functions_path = os.path.join(os.path.dirname(__file__), "./predefined/")
-    dirs_and_files = os.listdir(functions_path)
-    for name in dirs_and_files:
-        full_path = os.path.join(functions_path, name)
-        if os.path.isfile(full_path):
-            with open(full_path, "r") as file:
-                function_name = name.replace(".py", "").replace("_", " ")
-                predefined_functions[function_name] = file.read()
+    base_path = os.path.join(os.path.dirname(__file__), "./predefined/")
+    # List of directories to search.
+    directories = [base_path, os.path.join(base_path, "transformer_split_up"),
+                   os.path.join(base_path, "transformer_split_up_1")]
+
+    for functions_path in directories:
+        if not os.path.exists(functions_path):
+            continue
+        for name in os.listdir(functions_path):
+            full_path = os.path.join(functions_path, name)
+            if os.path.isfile(full_path) and name.endswith(".py"):
+                with open(full_path, "r") as file:
+                    function_name = name.replace(".py", "").replace("_", " ")
+                    predefined_functions[function_name] = file.read()
     return predefined_functions
 
 

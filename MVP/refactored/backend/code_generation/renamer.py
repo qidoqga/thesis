@@ -25,8 +25,9 @@ class Renamer(ast.NodeTransformer):
     def visit_FunctionDef(self, node):
         self.function_names.add(node.name)
 
-        if (node.name.startswith('__') and node.name.endswith('__')) or node.name == "forward"\
-                or node.name.startswith('set_') or node.name.startswith('build'):
+        if (node.name.startswith('__') and node.name.endswith('__')) or node.name == "forward" \
+                or node.name.startswith('set_') or node.name.startswith('build') or node.name.startswith('get_') \
+                or node.name == "add_block":
             return node
 
         if node.name == self.target_name:

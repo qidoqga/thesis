@@ -9,6 +9,7 @@ class Connection:
         self.index = index
         self.side = side  # 'spider' if connection is a spider
         self.location = location
+        self.base_location = list(location)
         self.wire = None
         self.has_wire = False
         self.r = r

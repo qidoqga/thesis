@@ -89,33 +89,6 @@ class CustomCanvas(tk.Canvas):
         self.copier = Copier()
         self.hypergraph_exporter = HypergraphExporter(self)
 
-        if add_boxes and diagram_source_box:
-            for connection in diagram_source_box.connections:
-                if connection.side == "left":
-                    self.add_diagram_input()
-                if connection.side == "right":
-                    self.add_diagram_output()
-        self.set_name(self.name)
-        self.context_menu = tk.Menu(self, tearoff=0)
-
-        if not search:
-            self.tree_logo = (Image.open(ASSETS_DIR + "/file-tree-outline.png"))
-            self.tree_logo = self.tree_logo.resize((20, 15))
-            self.tree_logo = ImageTk.PhotoImage(self.tree_logo)
-
-            tree_button = ttk.Button(self, image=self.tree_logo,
-                                     command=lambda: self.main_diagram.toggle_treeview(), bootstyle=(PRIMARY, OUTLINE))
-            tree_button.place(x=28, y=20, anchor=tk.CENTER)
-
-        self.search_result_button = SearchResultButton(self, self.main_diagram, self)
-
-        self.box_shape = "rectangle"
-        self.is_wire_pressed = False
-
-        self.copy_logo = (Image.open(ASSETS_DIR + "/content-copy.png"))
-        self.copy_logo = self.copy_logo.resize((20, 20))
-        self.copy_logo = ImageTk.PhotoImage(self.copy_logo)
-
         self.total_scale = 1.0
         self.delta = 0.75
 
@@ -144,6 +117,35 @@ class CustomCanvas(tk.Canvas):
 
         self.hover_item = None
         self.search_result_highlights = []
+
+        self.configure(scrollregion=(0, 0, 6000, 6000))
+
+        if add_boxes and diagram_source_box:
+            for connection in diagram_source_box.connections:
+                if connection.side == "left":
+                    self.add_diagram_input()
+                if connection.side == "right":
+                    self.add_diagram_output()
+        self.set_name(self.name)
+        self.context_menu = tk.Menu(self, tearoff=0)
+
+        if not search:
+            self.tree_logo = (Image.open(ASSETS_DIR + "/file-tree-outline.png"))
+            self.tree_logo = self.tree_logo.resize((20, 15))
+            self.tree_logo = ImageTk.PhotoImage(self.tree_logo)
+
+            tree_button = ttk.Button(self, image=self.tree_logo,
+                                     command=lambda: self.main_diagram.toggle_treeview(), bootstyle=(PRIMARY, OUTLINE))
+            tree_button.place(x=28, y=20, anchor=tk.CENTER)
+
+        self.search_result_button = SearchResultButton(self, self.main_diagram, self)
+
+        self.box_shape = "rectangle"
+        self.is_wire_pressed = False
+
+        self.copy_logo = (Image.open(ASSETS_DIR + "/content-copy.png"))
+        self.copy_logo = self.copy_logo.resize((20, 20))
+        self.copy_logo = ImageTk.PhotoImage(self.copy_logo)
 
     def on_hover(self, item):
         self.hover_item = item
@@ -359,6 +361,10 @@ class CustomCanvas(tk.Canvas):
         if self.total_scale - 1 < 0.1:
             self.init_corners()
         self.configure(scrollregion=self.bbox('all'))
+
+        base_width, base_height = 6000, 6000
+        new_scroll_region = (0, 0, int(base_width * self.total_scale), int(base_height * self.total_scale))
+        self.configure(scrollregion=new_scroll_region)
 
     def update_coordinates(self, denominator, event, scale):
         for corner in self.corners:

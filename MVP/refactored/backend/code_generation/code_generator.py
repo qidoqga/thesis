@@ -211,6 +211,35 @@ class CodeGenerator:
             # try to get the box function for this node if is None handle as a spider
             current_box_function = canvas.get_box_function(node.id)
             if current_box_function is None:
+
+                box = canvas.get_box_by_id(node.id)
+                if box is not None and box.sub_diagram is not None:
+                    print("sub diagram detected for node id:", node.id)
+
+                    sub_hypergraph: Hypergraph = HypergraphManager().get_graph_by_id(box.sub_diagram.id)
+                    sub_sorted_nodes = CodeGenerator.topological_sort(sub_hypergraph.nodes, sub_hypergraph)
+
+                    if node.inputs and node.inputs[0] in function_result_variables:
+                        container_input = function_result_variables[node.inputs[0]]
+                    else:
+                        container_input = f"res_{result_index - 1}"
+
+                    # Recursively generate code for the sub-diagram.
+                    sub_code, sub_function_vars = cls.create_main_function_content_from_sorted_list(
+                        box.sub_diagram, sub_sorted_nodes, renamed_functions, sub_hypergraph)
+
+                    sub_code = sub_code.replace("input_1", container_input, 1)
+
+                    indented_sub_code = "\n".join("\t" + line for line in sub_code.splitlines())
+                    content += "\n" + indented_sub_code
+
+                    if sub_sorted_nodes:
+                        container_output = sub_function_vars[sub_sorted_nodes[-1].id]
+                    else:
+                        container_output = "None"
+                    function_result_variables[node.id] = container_output
+                    continue
+
                 if any(spider.id == node.id for spider in canvas.spiders):
                     if len(node.inputs) == 1:
                         spider_var = f"res_{result_index}"
@@ -258,7 +287,18 @@ class CodeGenerator:
                 else:
                     var_info = function_result_variables.get(input_node.id)
                     if var_info is None:
-                        raise ValueError(f"Expected result for node id {input_node.id} not found!")
+
+                        input_box = canvas.get_box_by_id(input_node.id)
+                        if input_box is not None and input_box.sub_diagram is not None:
+                            print("sub diagram for input node", input_node.id)
+                            # If it's a container, assume its result variable has been set by recursive generation.
+                            var_info = function_result_variables.get(input_node.id)
+                            if var_info is None:
+                                raise ValueError(
+                                    f"Expected result for container node id {input_node.id} not generated!")
+                        else:
+                            raise ValueError(f"Expected result for node id {input_node.id} not found!")
+
                     if isinstance(var_info, tuple):
                         var, is_single = var_info
                         if is_single:

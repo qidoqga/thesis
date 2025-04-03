@@ -50,6 +50,19 @@ class MainDiagram(tk.Tk):
         self.wire_objects = {}
 
         self.custom_canvas = CustomCanvas(self, None, self.receiver, self, self, False)
+
+        self.custom_canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
+        # Create vertical scrollbar
+        v_scroll = tk.Scrollbar(self, orient=tk.VERTICAL, command=self.custom_canvas.yview)
+        v_scroll.pack(side=tk.RIGHT, fill=tk.Y)
+        self.custom_canvas.configure(yscrollcommand=v_scroll.set)
+
+        # Create horizontal scrollbar
+        h_scroll = tk.Scrollbar(self, orient=tk.HORIZONTAL, command=self.custom_canvas.xview)
+        h_scroll.pack(side=tk.BOTTOM, fill=tk.X)
+        self.custom_canvas.configure(xscrollcommand=h_scroll.set)
+
         self.custom_canvas.focus_set()
         self.custom_canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 

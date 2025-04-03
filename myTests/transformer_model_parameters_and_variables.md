@@ -53,6 +53,18 @@
     Usage:
         Dropout helps prevent overfitting by randomly setting a fraction of the activations to zero during training.
 
+## 7. max_len
+    The maximum sequence length for which positional encodings are precomputed.
+
+    Usage:
+        Positional Encoding Module:
+            A matrix of shape (max_len, model_dim) is created to store the positional encodings. 
+            Each row represents the encoding for a specific position in the input sequence.
+
+        Considerations:
+            Ensure that max_len is set to a value high enough to cover the longest sequences expected during training or inference. 
+            If a sequence exceeds max_len, the module will only have encodings for the first max_len positions.
+
 # Components of the Model
 
 ## 1. Embedding Layer (self.embedding):
