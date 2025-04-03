@@ -1,6 +1,6 @@
 import re
 from queue import Queue
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 
 import autopep8
 
@@ -168,8 +168,21 @@ class CodeGenerator:
         )
         main_function_return = cls.create_main_function_return(function_result_variables, hypergraph)
 
-        main_function += main_function_content
-        main_function += main_function_return
+        # main_function += main_function_content
+        # main_function += main_function_return
+
+        lines = main_function_content.splitlines()
+        if lines:
+            # Leave the first line unmodified.
+            indented_body = lines[0] + "\n" + "\n".join(
+                "\t" + line if line.strip() != "" else "" for line in lines[1:])
+        else:
+            indented_body = ""
+
+        indented_return = "\n".join(
+            "\t" + line if line.strip() != "" else "" for line in main_function_return.splitlines())
+
+        main_function += indented_body + "\n" + indented_return + "\n"
         return main_function
 
     def topological_sort(nodes: List, hypergraph) -> List:
@@ -194,47 +207,171 @@ class CodeGenerator:
                     queue.append(child)
         return sorted_nodes
 
+    # @classmethod
+    # def create_main_function_content_from_sorted_list(cls, canvas: CustomCanvas, sorted_nodes: List,
+    #                                                   renamed_functions: dict[BoxFunction, str],
+    #                                                   hypergraph: Hypergraph) -> Tuple[str, dict]:
+    #     function_result_variables: dict[int, str] = dict()
+    #     input_index = 1
+    #     result_index = 1
+    #     content = ""
+    #
+    #     # for nodes with multiple outputs track the next available index
+    #     function_output_index: dict[int, int] = {node.id: 0 for node in sorted_nodes if len(node.outputs) > 1}
+    #
+    #     for node in sorted_nodes:
+    #
+    #         # try to get the box function for this node if is None handle as a spider
+    #         current_box_function = canvas.get_box_function(node.id)
+    #         if current_box_function is None:
+    #
+    #             box = canvas.get_box_by_id(node.id)
+    #             if box is not None and box.sub_diagram is not None:
+    #                 print("sub diagram detected for node id:", node.id)
+    #
+    #                 sub_hypergraph: Hypergraph = HypergraphManager().get_graph_by_id(box.sub_diagram.id)
+    #                 sub_sorted_nodes = CodeGenerator.topological_sort(sub_hypergraph.nodes, sub_hypergraph)
+    #
+    #                 if node.inputs and node.inputs[0] in function_result_variables:
+    #                     container_input = function_result_variables[node.inputs[0]]
+    #                 else:
+    #                     container_input = f"res_{result_index - 1}"
+    #
+    #                 # Recursively generate code for the sub-diagram.
+    #                 sub_code, sub_function_vars = cls.create_main_function_content_from_sorted_list(
+    #                     box.sub_diagram, sub_sorted_nodes, renamed_functions, sub_hypergraph)
+    #
+    #                 sub_code = sub_code.replace("input_1", container_input, 1)
+    #
+    #                 indented_sub_code = "\n".join("\t" + line for line in sub_code.splitlines())
+    #                 content += "\n" + indented_sub_code
+    #
+    #                 if sub_sorted_nodes:
+    #                     container_output = sub_function_vars[sub_sorted_nodes[-1].id]
+    #                 else:
+    #                     container_output = "None"
+    #                 function_result_variables[node.id] = container_output
+    #                 continue
+    #
+    #             if any(spider.id == node.id for spider in canvas.spiders):
+    #                 if len(node.inputs) == 1:
+    #                     spider_var = f"res_{result_index}"
+    #                     result_index += 1
+    #                     if node.inputs:
+    #                         parent_var = function_result_variables.get(node.inputs[0], f"input_{input_index}")
+    #                         if node.inputs[0] not in function_result_variables:
+    #                             input_index += 1
+    #                     else:
+    #                         parent_var = f"input_{input_index}"
+    #                         input_index += 1
+    #                     line = f"{spider_var} = {parent_var}\n\t"
+    #                     content += f"# Spider node {node.id} with one input propagates {parent_var} as {spider_var}\n\t" + line
+    #                     function_result_variables[node.id] = spider_var
+    #                 else:
+    #                     spider_var = f"res_{result_index}"
+    #                     result_index += 1
+    #                     inputs_list = []
+    #                     for wire in node.inputs:
+    #                         input_node = hypergraph.get_node_by_output(wire)
+    #                         if input_node is None:
+    #                             inputs_list.append(f"input_{input_index}")
+    #                             input_index += 1
+    #                         else:
+    #                             value = function_result_variables[input_node.id]
+    #                             if isinstance(value, tuple):
+    #                                 inputs_list.append(value[0])
+    #                             else:
+    #                                 inputs_list.append(value)
+    #                     line = f"{spider_var} = [{', '.join(inputs_list)}]\n\t"
+    #                     content += f"# Spider node {node.id} aggregates inputs into {spider_var}\n\t" + line
+    #                     function_result_variables[node.id] = (spider_var, False)
+    #                 continue
+    #             else:
+    #                 raise ValueError("No box function found for node id: " + str(node.id))
+    #
+    #         line = f"res_{result_index} = {renamed_functions[current_box_function]}("
+    #         result_index += 1
+    #         function_result_variables[node.id] = f"res_{result_index - 1}"
+    #         for input_wire in node.inputs:
+    #             input_node = hypergraph.get_node_by_output(input_wire)
+    #             if input_node is None:
+    #                 line += f"input_{input_index}, "
+    #                 input_index += 1
+    #             else:
+    #                 var_info = function_result_variables.get(input_node.id)
+    #                 if var_info is None:
+    #
+    #                     input_box = canvas.get_box_by_id(input_node.id)
+    #                     if input_box is not None and input_box.sub_diagram is not None:
+    #                         print("sub diagram for input node", input_node.id)
+    #                         # If it's a container, assume its result variable has been set by recursive generation.
+    #                         var_info = function_result_variables.get(input_node.id)
+    #                         if var_info is None:
+    #                             raise ValueError(
+    #                                 f"Expected result for container node id {input_node.id} not generated!")
+    #                     else:
+    #                         raise ValueError(f"Expected result for node id {input_node.id} not found!")
+    #
+    #                 if isinstance(var_info, tuple):
+    #                     var, is_single = var_info
+    #                     if is_single:
+    #                         line += f"{var}, "
+    #                     else:
+    #                         line += f"{var}[{function_output_index[input_node.id]}], "
+    #                         function_output_index[input_node.id] += 1
+    #                 else:
+    #                     line += f"{var_info}, "
+    #         line = line[:-2] + ")\n\t"
+    #         content += line
+    #
+    #     return content, function_result_variables
+
     @classmethod
     def create_main_function_content_from_sorted_list(cls, canvas: CustomCanvas, sorted_nodes: List,
                                                       renamed_functions: dict[BoxFunction, str],
                                                       hypergraph: Hypergraph) -> Tuple[str, dict]:
-        function_result_variables: dict[int, str] = dict()
-        input_index = 1
-        result_index = 1
-        content = ""
+        content, func_vars, _, _ = cls._create_main_function_content_rec(canvas, sorted_nodes,
+                                                                         renamed_functions, hypergraph,
+                                                                         input_index=1, result_index=1,
+                                                                         default_input=None)
+        return content, func_vars
 
-        # for nodes with multiple outputs track the next available index
+    @classmethod
+    def _create_main_function_content_rec(cls, canvas: CustomCanvas, sorted_nodes: List,
+                                          renamed_functions: dict[BoxFunction, str],
+                                          hypergraph: Hypergraph,
+                                          input_index: int,
+                                          result_index: int,
+                                          default_input: Optional[str] = None
+                                          ) -> Tuple[str, dict, int, int]:
+        function_result_variables: dict[int, str] = {}
+        content = ""
+        # For nodes with multiple outputs, track the next available index.
         function_output_index: dict[int, int] = {node.id: 0 for node in sorted_nodes if len(node.outputs) > 1}
 
         for node in sorted_nodes:
-
-            # try to get the box function for this node if is None handle as a spider
             current_box_function = canvas.get_box_function(node.id)
             if current_box_function is None:
-
                 box = canvas.get_box_by_id(node.id)
                 if box is not None and box.sub_diagram is not None:
                     print("sub diagram detected for node id:", node.id)
-
                     sub_hypergraph: Hypergraph = HypergraphManager().get_graph_by_id(box.sub_diagram.id)
                     sub_sorted_nodes = CodeGenerator.topological_sort(sub_hypergraph.nodes, sub_hypergraph)
-
                     if node.inputs and node.inputs[0] in function_result_variables:
                         container_input = function_result_variables[node.inputs[0]]
                     else:
                         container_input = f"res_{result_index - 1}"
 
                     # Recursively generate code for the sub-diagram.
-                    sub_code, sub_function_vars = cls.create_main_function_content_from_sorted_list(
-                        box.sub_diagram, sub_sorted_nodes, renamed_functions, sub_hypergraph)
-
-                    sub_code = sub_code.replace("input_1", container_input, 1)
-
-                    indented_sub_code = "\n".join("\t" + line for line in sub_code.splitlines())
-                    content += "\n" + indented_sub_code
+                    sub_code, sub_func_vars, input_index, result_index = cls._create_main_function_content_rec(
+                        box.sub_diagram, sub_sorted_nodes, renamed_functions, sub_hypergraph,
+                        input_index, result_index, container_input
+                    )
+                    # Append sub-code directly without extra indentation.
+                    content += "\n" + sub_code
 
                     if sub_sorted_nodes:
-                        container_output = sub_function_vars[sub_sorted_nodes[-1].id]
+                        container_output = sub_func_vars[sub_sorted_nodes[-1].id]
                     else:
                         container_output = "None"
                     function_result_variables[node.id] = container_output
@@ -245,15 +382,22 @@ class CodeGenerator:
                         spider_var = f"res_{result_index}"
                         result_index += 1
                         if node.inputs:
-                            parent_var = function_result_variables.get(node.inputs[0], f"input_{input_index}")
-                            if node.inputs[0] not in function_result_variables:
+                            parent_var = function_result_variables.get(
+                                node.inputs[0], default_input if default_input is not None else f"input_{input_index}"
+                            )
+                            if node.inputs[0] not in function_result_variables and default_input is None:
                                 input_index += 1
+                            else:
+                                default_input = None
                         else:
-                            parent_var = f"input_{input_index}"
-                            input_index += 1
-                        line = f"{spider_var} = {parent_var}\n\t"
-                        content += f"# Spider node {node.id} with one input propagates {parent_var} as {spider_var}\n\t" + line
-                        function_result_variables[node.id] = spider_var
+                            parent_var = default_input if default_input is not None else f"input_{input_index}"
+                            if default_input is None:
+                                input_index += 1
+                            else:
+                                default_input = None
+                        line = f"res_{result_index - 1} = {parent_var}\n"
+                        content += f"# Spider node {node.id} with one input propagates {parent_var} as res_{result_index - 1}\n" + line
+                        function_result_variables[node.id] = f"res_{result_index - 1}"
                     else:
                         spider_var = f"res_{result_index}"
                         result_index += 1
@@ -261,44 +405,49 @@ class CodeGenerator:
                         for wire in node.inputs:
                             input_node = hypergraph.get_node_by_output(wire)
                             if input_node is None:
-                                inputs_list.append(f"input_{input_index}")
-                                input_index += 1
+                                if default_input is not None:
+                                    inputs_list.append(default_input)
+                                    default_input = None
+                                else:
+                                    inputs_list.append(f"input_{input_index}")
+                                    input_index += 1
                             else:
                                 value = function_result_variables[input_node.id]
                                 if isinstance(value, tuple):
                                     inputs_list.append(value[0])
                                 else:
                                     inputs_list.append(value)
-                        line = f"{spider_var} = [{', '.join(inputs_list)}]\n\t"
-                        content += f"# Spider node {node.id} aggregates inputs into {spider_var}\n\t" + line
+                        line = f"{spider_var} = [{', '.join(inputs_list)}]\n"
+                        content += f"# Spider node {node.id} aggregates inputs into {spider_var}\n" + line
                         function_result_variables[node.id] = (spider_var, False)
                     continue
                 else:
                     raise ValueError("No box function found for node id: " + str(node.id))
 
+            # Process node with a valid box function.
             line = f"res_{result_index} = {renamed_functions[current_box_function]}("
             result_index += 1
             function_result_variables[node.id] = f"res_{result_index - 1}"
             for input_wire in node.inputs:
                 input_node = hypergraph.get_node_by_output(input_wire)
                 if input_node is None:
-                    line += f"input_{input_index}, "
-                    input_index += 1
+                    if default_input is not None:
+                        line += f"{default_input}, "
+                        default_input = None
+                    else:
+                        line += f"input_{input_index}, "
+                        input_index += 1
                 else:
                     var_info = function_result_variables.get(input_node.id)
                     if var_info is None:
-
                         input_box = canvas.get_box_by_id(input_node.id)
                         if input_box is not None and input_box.sub_diagram is not None:
-                            print("sub diagram for input node", input_node.id)
-                            # If it's a container, assume its result variable has been set by recursive generation.
                             var_info = function_result_variables.get(input_node.id)
                             if var_info is None:
                                 raise ValueError(
                                     f"Expected result for container node id {input_node.id} not generated!")
                         else:
                             raise ValueError(f"Expected result for node id {input_node.id} not found!")
-
                     if isinstance(var_info, tuple):
                         var, is_single = var_info
                         if is_single:
@@ -308,10 +457,10 @@ class CodeGenerator:
                             function_output_index[input_node.id] += 1
                     else:
                         line += f"{var_info}, "
-            line = line[:-2] + ")\n\t"
+            line = line[:-2] + ")\n"
             content += line
 
-        return content, function_result_variables
+        return content, function_result_variables, input_index, result_index
 
     @classmethod
     def create_definition_of_main_function(cls, input_nodes: set[Node]) -> str:
