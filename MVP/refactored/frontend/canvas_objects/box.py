@@ -1,7 +1,7 @@
 import json
 import re
 import tkinter as tk
-from tkinter import messagebox
+from tkinter import messagebox, ttk
 from tkinter import simpledialog
 
 from MVP.refactored.frontend.canvas_objects.connection import Connection
@@ -54,16 +54,29 @@ class Box:
 
         self.collision_ids = [self.rect, self.resize_handle]
         self.neurons = 32
-        self.activation = 'relu'
+        self.activation = 'nn.ReLU'
         self.inputs = 10
         self.optimizer = 'adam'
         self.loss = 'binary_crossentropy'
         self.metrics = ['accuracy']
         self.outputs = 1
+        self.dropout = 0.1
+        self.out_channels = 16
+        self.kernel_size = 3
+        self.stride = 1
+        self.padding = 0
+        self.pool_type = 'max'
+        self.num_layers = 1
+        self.bidirectional = False
+        self.non_linearity = 'tanh'
+        self.batch_first = True
+        self.seq_to_seq = False
 
         self.num_heads = 8
         self.num_encoder_layers = 3
         self.num_decoder_layers = 3
+
+        self.category = None
 
     def set_id(self, id_):
         if self.receiver.listener and not self.canvas.search:
@@ -121,6 +134,40 @@ class Box:
             self.context_menu.add_command(label="Edit Sub-Diagram", command=self.edit_sub_diagram)
             self.context_menu.add_command(label="Unfold sub-diagram", command=self.unfold)
             self.context_menu.add_command(label="Lock Box", command=self.lock_box)
+
+            if "ffn output layer" in self.label_text:
+                self.context_menu.add_command(label="Edit Properties", command=self.open_output_layer_editor)
+            elif "ffn hidden layer" in self.label_text:
+                self.context_menu.add_command(label="Edit Properties", command=self.open_middle_layer_editor)
+            elif "ffn dropout" in self.label_text:
+                self.context_menu.add_command(label="Edit Properties", command=self.open_dropout_editor)
+
+            if "cnn conv layer" in self.label_text:
+                self.context_menu.add_command(label="Edit Properties", command=self.open_conv_layer_editor)
+            elif "cnn pool" in self.label_text:
+                self.context_menu.add_command(label="Edit Properties", command=self.open_pool_editor)
+            elif "cnn dropout2d" in self.label_text:
+                self.context_menu.add_command(label="Edit Properties", command=self.open_dropout_editor)
+            elif "cnn dense layer" in self.label_text:
+                self.context_menu.add_command(label="Edit Properties", command=self.open_middle_layer_editor)
+            elif "cnn dropout" in self.label_text:
+                self.context_menu.add_command(label="Edit Properties", command=self.open_dropout_editor)
+            elif "cnn output layer" in self.label_text:
+                self.context_menu.add_command(label="Edit Properties", command=self.open_middle_layer_editor)
+
+            if "rnn input layer" in self.label_text:
+                self.context_menu.add_command(label="Edit Properties", command=self.open_rnn_input_layer_editor)
+            elif "rnn lstm layer" in self.label_text:
+                self.context_menu.add_command(label="Edit Properties", command=self.open_rnn_layer_editor)
+            elif "rnn gru layer" in self.label_text:
+                self.context_menu.add_command(label="Edit Properties", command=self.open_rnn_layer_editor)
+            elif "rnn dropout" in self.label_text:
+                self.context_menu.add_command(label="Edit Properties", command=self.open_dropout_editor)
+            elif "rnn simple layer" in self.label_text:
+                self.context_menu.add_command(label="Edit Properties", command=self.open_simple_rnn_layer_editor)
+            elif "rnn output layer" in self.label_text:
+                self.context_menu.add_command(label="Edit Properties", command=self.open_middle_layer_editor)
+
             if "input dense layer" in self.label_text:
                 self.context_menu.add_command(label="Edit Properties", command=self.open_input_layer_editor)
             elif "output dense layer" in self.label_text:
@@ -131,6 +178,7 @@ class Box:
                 self.context_menu.add_command(label="Edit Properties", command=self.open_transformer_layer_editor)
 
         self.context_menu.add_command(label="Save Box to Menu", command=self.save_box_to_menu)
+        self.context_menu.add_command(label="Save AI Box to Menu", command=self.save_ai_box_to_menu)
         if self.sub_diagram:
             self.context_menu.add_command(label="Delete Box", command=lambda: self.delete_box(action="sub_diagram"))
         else:
@@ -159,6 +207,14 @@ class Box:
         if not self.label_text:
             return
         self.canvas.main_diagram.save_box_to_diagram_menu(self)
+
+    def save_ai_box_to_menu(self):
+        if not self.label_text:
+            self.edit_label()
+        if not self.label_text:
+            return
+        self.category = "ai"
+        self.canvas.main_diagram.save_box_to_ai_diagram_menu(self)
 
     def handle_double_click(self):
         if self.sub_diagram:
@@ -417,7 +473,8 @@ class Box:
             self.canvas.coords(
                 self.label,
                 self.x + self.size[0] / 2,
-                self.y + self.size[1] / 2
+                # self.y + self.size[1] / 2
+                self.y + 10
             )
 
     def bind_event_label(self):
@@ -457,6 +514,367 @@ class Box:
 
         self.bind_event_label()
 
+    def open_rnn_input_layer_editor(self):
+        editor = tk.Toplevel(self.canvas)
+        editor.title("Edit RNN Input Layer Properties")
+        editor.grab_set()
+
+        tk.Label(editor, text="Batch First:").grid(row=0, column=0, padx=5, pady=5, sticky="e")
+        bf_options = ['False', 'True']
+        curr_bf = str(getattr(self, 'batch_first', True))
+        if curr_bf not in bf_options:
+            bf_options.insert(0, curr_bf)
+        bf_var = tk.StringVar(value=curr_bf)
+        bf_combo = ttk.Combobox(editor, textvariable=bf_var, values=bf_options, state="readonly")
+        bf_combo.grid(row=0, column=1, padx=5, pady=5)
+        try:
+            bf_combo.current(bf_options.index(curr_bf))
+        except ValueError:
+            bf_combo.current(0)
+
+        tk.Label(editor, text="Seq to Seq:").grid(row=1, column=0, padx=5, pady=5, sticky="e")
+        sts_options = ['False', 'True']
+        curr_sts = str(getattr(self, 'seq_to_seq', False))
+        if curr_sts not in sts_options:
+            sts_options.insert(0, curr_sts)
+        sts_var = tk.StringVar(value=curr_sts)
+        sts_combo = ttk.Combobox(editor, textvariable=sts_var, values=sts_options, state="readonly")
+        sts_combo.grid(row=1, column=1, padx=5, pady=5)
+        try:
+            sts_combo.current(sts_options.index(curr_sts))
+        except ValueError:
+            sts_combo.current(0)
+
+        def save_input_properties():
+            new_bf = True if bf_var.get() == 'True' else False
+            new_sts = True if sts_var.get() == 'True' else False
+            self.batch_first = new_bf
+            self.seq_to_seq = new_sts
+            self.change_label()
+            editor.destroy()
+
+        tk.Button(editor, text="Save", command=save_input_properties).grid(row=2, column=0, columnspan=2, pady=10)
+
+    def open_simple_rnn_layer_editor(self):
+        editor = tk.Toplevel(self.canvas)
+        editor.title("Edit RNN Layer Properties")
+        editor.grab_set()
+
+        tk.Label(editor, text="Neurons:").grid(row=0, column=0, padx=5, pady=5, sticky="e")
+        neurons_var = tk.StringVar(value=str(getattr(self, 'neurons', '')))
+        tk.Entry(editor, textvariable=neurons_var).grid(row=0, column=1, padx=5, pady=5)
+
+        tk.Label(editor, text="Num Layers:").grid(row=1, column=0, padx=5, pady=5, sticky="e")
+        layers_var = tk.StringVar(value=str(getattr(self, 'num_layers', 1)))
+        tk.Entry(editor, textvariable=layers_var).grid(row=1, column=1, padx=5, pady=5)
+
+        tk.Label(editor, text="Non Linearity:").grid(row=2, column=0, padx=5, pady=5, sticky="e")
+        nonlin_options = ['tanh', 'relu']
+        curr_nonlin = getattr(self, 'non_linearity', 'tanh')
+        if curr_nonlin not in nonlin_options:
+            nonlin_options.insert(0, curr_nonlin)
+        nonlin_var = tk.StringVar(value=curr_nonlin)
+        nonlin_combo = ttk.Combobox(editor, textvariable=nonlin_var, values=nonlin_options, state="readonly")
+        nonlin_combo.grid(row=2, column=1, padx=5, pady=5)
+        try:
+            nonlin_combo.current(nonlin_options.index(curr_nonlin))
+        except ValueError:
+            nonlin_combo.current(0)
+
+        tk.Label(editor, text="Bidirectional:").grid(row=3, column=0, padx=5, pady=5, sticky="e")
+        bidi_options = ['False', 'True']
+        curr_bidi = str(getattr(self, 'bidirectional', False))
+        if curr_bidi not in bidi_options:
+            bidi_options.insert(0, curr_bidi)
+        bidi_var = tk.StringVar(value=curr_bidi)
+        bidi_combo = ttk.Combobox(editor, textvariable=bidi_var, values=bidi_options, state="readonly")
+        bidi_combo.grid(row=3, column=1, padx=5, pady=5)
+        try:
+            bidi_combo.current(bidi_options.index(curr_bidi))
+        except ValueError:
+            bidi_combo.current(0)
+
+        tk.Label(editor, text="Dropout:").grid(row=4, column=0, padx=5, pady=5, sticky="e")
+        dropout_var = tk.StringVar(value=str(getattr(self, 'dropout', 0.0)))
+        tk.Entry(editor, textvariable=dropout_var).grid(row=4, column=1, padx=5, pady=5)
+
+        def save_simple_rnn_properties():
+
+            try:
+                new_neurons = int(neurons_var.get())
+            except ValueError:
+                messagebox.showerror("Invalid Value", "Hidden Dim must be an integer.")
+                return
+
+            try:
+                new_layers = int(layers_var.get())
+            except ValueError:
+                messagebox.showerror("Invalid Value", "Num Layers must be an integer.")
+                return
+
+            new_nonlin = nonlin_var.get().strip()
+            if new_nonlin not in ['tanh', 'relu']:
+                messagebox.showerror("Invalid Value", "Nonlinearity must be 'tanh' or 'relu'.")
+                return
+
+            new_bidi = True if bidi_var.get() == 'True' else False
+
+            try:
+                new_dropout = float(dropout_var.get())
+            except ValueError:
+                messagebox.showerror("Invalid Value", "Dropout must be a float.")
+                return
+
+            self.neurons = new_neurons
+            self.num_layers = new_layers
+            self.non_linearity = new_nonlin
+            self.bidirectional = new_bidi
+            self.dropout = new_dropout
+            self.change_label()
+            editor.destroy()
+
+        tk.Button(editor, text="Save", command=save_simple_rnn_properties).grid(row=5, column=0, columnspan=2, pady=10)
+
+    def open_rnn_layer_editor(self):
+        editor = tk.Toplevel(self.canvas)
+        editor.title("Edit RNN Layer Properties")
+        editor.grab_set()
+
+        tk.Label(editor, text="Neurons:").grid(row=0, column=0, padx=5, pady=5, sticky="e")
+        neurons_var = tk.StringVar(value=str(getattr(self, 'neurons', '')))
+        tk.Entry(editor, textvariable=neurons_var).grid(row=0, column=1, padx=5, pady=5)
+
+        tk.Label(editor, text="Num Layers:").grid(row=1, column=0, padx=5, pady=5, sticky="e")
+        layers_var = tk.StringVar(value=str(getattr(self, 'num_layers', 1)))
+        tk.Entry(editor, textvariable=layers_var).grid(row=1, column=1, padx=5, pady=5)
+
+        tk.Label(editor, text="Bidirectional:").grid(row=2, column=0, padx=5, pady=5, sticky="e")
+        bidi_options = ['False', 'True']
+        curr_bidi = str(getattr(self, 'bidirectional', False))
+        if curr_bidi not in bidi_options:
+            bidi_options.insert(0, curr_bidi)
+        bidi_var = tk.StringVar(value=curr_bidi)
+        ttk.Combobox(editor, textvariable=bidi_var, values=bidi_options, state="readonly").grid(row=2, column=1, padx=5, pady=5)
+        try:
+            editor.children[list(editor.children.keys())[-1]].current(bidi_options.index(curr_bidi))
+        except Exception:
+            editor.children[list(editor.children.keys())[-1]].current(0)
+
+        tk.Label(editor, text="Dropout:").grid(row=3, column=0, padx=5, pady=5, sticky="e")
+        dropout_var = tk.StringVar(value=str(getattr(self, 'dropout', 0.0)))
+        tk.Entry(editor, textvariable=dropout_var).grid(row=3, column=1, padx=5, pady=5)
+
+        def save_rnn_properties():
+            try:
+                new_neurons = int(neurons_var.get())
+            except ValueError:
+                messagebox.showerror("Invalid Value", "Hidden Dim must be an integer.")
+                return
+            try:
+                new_layers = int(layers_var.get())
+            except ValueError:
+                messagebox.showerror("Invalid Value", "Num Layers must be an integer.")
+                return
+            new_bidi = True if bidi_var.get()=='True' else False
+            try:
+                new_dropout = float(dropout_var.get())
+            except ValueError:
+                messagebox.showerror("Invalid Value", "Dropout must be a float.")
+                return
+            self.neurons = new_neurons
+            self.num_layers = new_layers
+            self.bidirectional = new_bidi
+            self.dropout = new_dropout
+            self.change_label()
+            editor.destroy()
+
+        tk.Button(editor, text="Save", command=save_rnn_properties).grid(row=4, column=0, columnspan=2, pady=10)
+
+    def open_pool_editor(self):
+        editor = tk.Toplevel(self.canvas)
+        editor.title("Edit Pooling Layer Properties")
+        editor.grab_set()
+
+        tk.Label(editor, text="Kernel Size:").grid(row=0, column=0, padx=5, pady=5, sticky="e")
+        ksize_var = tk.StringVar(value=str(getattr(self, 'kernel_size', '')))
+        tk.Entry(editor, textvariable=ksize_var).grid(row=0, column=1, padx=5, pady=5)
+
+        tk.Label(editor, text="Stride:").grid(row=1, column=0, padx=5, pady=5, sticky="e")
+        stride_var = tk.StringVar(value=str(getattr(self, 'stride', '')))
+        tk.Entry(editor, textvariable=stride_var).grid(row=1, column=1, padx=5, pady=5)
+
+        tk.Label(editor, text="Pool Type:").grid(row=2, column=0, padx=5, pady=5, sticky="e")
+        types = ['max', 'avg']
+        current_type = getattr(self, 'pool_type', 'max')
+        if current_type not in types:
+            types.insert(0, current_type)
+        type_var = tk.StringVar(value=current_type)
+        type_combo = ttk.Combobox(editor, textvariable=type_var, values=types, state="readonly")
+        type_combo.grid(row=2, column=1, padx=5, pady=5)
+        try:
+            type_combo.current(types.index(current_type))
+        except ValueError:
+            type_combo.current(0)
+
+        def save_pool_properties():
+            def parse_val(text):
+                t = text.strip()
+                if ',' in t:
+                    p = [x.strip() for x in t.split(',')]
+                    if len(p) != 2:
+                        raise ValueError
+                    return (int(p[0]), int(p[1]))
+                return int(t)
+            try:
+                new_ks = parse_val(ksize_var.get())
+                new_stride = parse_val(stride_var.get())
+            except ValueError:
+                messagebox.showerror(
+                    "Invalid Value",
+                    "Kernel Size and Stride must be int or two ints separated by comma."
+                )
+                return
+            new_type = type_var.get().strip()
+            if new_type not in ['max', 'avg']:
+                messagebox.showerror("Invalid Value", "Pool type must be 'max' or 'avg'.")
+                return
+            self.kernel_size = new_ks
+            self.stride = new_stride
+            self.pool_type = new_type
+            self.change_label()
+            editor.destroy()
+
+        save_btn = tk.Button(editor, text="Save", command=save_pool_properties)
+        save_btn.grid(row=3, column=0, columnspan=2, pady=10)
+
+    def open_conv_layer_editor(self):
+        editor = tk.Toplevel(self.canvas)
+        editor.title("Edit Convolution Layer Properties")
+        editor.grab_set()
+
+        tk.Label(editor, text="Out Channels:").grid(row=0, column=0, padx=5, pady=5, sticky="e")
+        channels_var = tk.StringVar(value=str(getattr(self, 'out_channels', '')))
+        channels_entry = tk.Entry(editor, textvariable=channels_var)
+        channels_entry.grid(row=0, column=1, padx=5, pady=5)
+
+        tk.Label(editor, text="Kernel Size:").grid(row=1, column=0, padx=5, pady=5, sticky="e")
+        ksize_var = tk.StringVar(value=str(getattr(self, 'kernel_size', '')))
+        ksize_entry = tk.Entry(editor, textvariable=ksize_var)
+        ksize_entry.grid(row=1, column=1, padx=5, pady=5)
+
+        tk.Label(editor, text="Stride:").grid(row=2, column=0, padx=5, pady=5, sticky="e")
+        stride_var = tk.StringVar(value=str(getattr(self, 'stride', '')))
+        stride_entry = tk.Entry(editor, textvariable=stride_var)
+        stride_entry.grid(row=2, column=1, padx=5, pady=5)
+
+        tk.Label(editor, text="Padding:").grid(row=3, column=0, padx=5, pady=5, sticky="e")
+        pad_var = tk.StringVar(value=str(getattr(self, 'padding', '')))
+        pad_entry = tk.Entry(editor, textvariable=pad_var)
+        pad_entry.grid(row=3, column=1, padx=5, pady=5)
+
+        tk.Label(editor, text="Activation:").grid(row=4, column=0, padx=5, pady=5, sticky="e")
+        activations = [
+            "nn.ReLU",
+            "nn.Sigmoid",
+            "nn.Tanh",
+            "nn.LeakyReLU",
+            "nn.ELU",
+            "nn.GELU",
+            "nn.Softmax",
+        ]
+        current = str(self.activation)
+        if current not in activations:
+            activations.insert(0, current)
+        activation_var = tk.StringVar(value=current)
+        activation_combo = ttk.Combobox(
+            editor,
+            textvariable=activation_var,
+            values=activations,
+            state="readonly"
+        )
+        activation_combo.grid(row=4, column=1, padx=5, pady=5)
+        # safe preselect
+        try:
+            activation_combo.current(activations.index(current))
+        except ValueError:
+            activation_combo.current(0)
+
+        def save_properties():
+            try:
+                new_channels = int(channels_var.get())
+            except ValueError:
+                messagebox.showerror("Invalid Value", "Out Channels must be an integer.")
+                return
+
+            def parse_val(text):
+                t = text.strip()
+                if ',' in t:
+                    parts = [p.strip() for p in t.split(',')]
+                    if len(parts) != 2:
+                        raise ValueError
+                    return (int(parts[0]), int(parts[1]))
+                return int(t)
+
+            try:
+                new_ks = parse_val(ksize_var.get())
+                new_stride = parse_val(stride_var.get())
+                new_pad = parse_val(pad_var.get())
+            except ValueError:
+                messagebox.showerror(
+                    "Invalid Value",
+                    "Kernel Size, Stride, and Padding must be int or two ints separated by comma."
+                )
+                return
+            act_name = activation_var.get().strip()
+            # act_map = {
+            #     'nn.ReLU': nn.ReLU,
+            #     'nn.Sigmoid': nn.Sigmoid,
+            #     'nn.Tanh': nn.Tanh,
+            #     'nn.LeakyReLU': nn.LeakyReLU,
+            #     'nn.ELU': nn.ELU,
+            #     'nn.GELU': nn.GELU,
+            #     'nn.Softmax': nn.Softmax,
+            # }
+            # act_cls = act_map.get(act_name)
+            # if act_cls is None:
+            #     messagebox.showerror("Invalid Value", "Unknown activation function.")
+            #     return
+            self.out_channels = new_channels
+            self.kernel_size = new_ks
+            self.stride = new_stride
+            self.padding = new_pad
+            self.activation = act_name
+            self.change_label()
+            editor.destroy()
+
+        save_btn = tk.Button(editor, text="Save", command=save_properties)
+        save_btn.grid(row=5, column=0, columnspan=2, pady=10)
+
+    def open_dropout_editor(self):
+        editor = tk.Toplevel(self.canvas)
+        editor.title("Edit Dropout")
+        editor.grab_set()
+
+        tk.Label(editor, text="Dropout:").grid(row=0, column=0, padx=5, pady=5, sticky="e")
+        dropout_var = tk.StringVar(value=str(self.dropout))
+        dropout_entry = tk.Entry(editor, textvariable=dropout_var)
+        dropout_entry.grid(row=0, column=1, padx=5, pady=5)
+
+        def save_properties():
+            try:
+                new_dropout = float(dropout_var.get())
+            except ValueError:
+                messagebox.showerror("Invalid Value", "Dropout must be an number.")
+                return
+
+            self.dropout = new_dropout
+
+            self.change_label()
+            editor.destroy()
+
+        save_btn = tk.Button(editor, text="Save", command=save_properties)
+        save_btn.grid(row=1, column=0, columnspan=2, pady=10)
+
     def open_middle_layer_editor(self):
         editor = tk.Toplevel(self.canvas)
         editor.title("Edit Middle Layer Properties")
@@ -468,9 +886,32 @@ class Box:
         neurons_entry.grid(row=0, column=1, padx=5, pady=5)
 
         tk.Label(editor, text="Activation:").grid(row=1, column=0, padx=5, pady=5, sticky="e")
+
+        activations = [
+            "None",
+            "nn.ReLU",
+            "nn.Sigmoid",
+            "nn.Tanh",
+            "nn.LeakyReLU",
+            "nn.ELU",
+            "nn.GELU",
+            "nn.Softmax",
+            "nn.LogSoftmax",
+        ]
+
+        current = str(self.activation)
+        if current not in activations:
+            activations.insert(0, current)
+
         activation_var = tk.StringVar(value=self.activation)
-        activation_entry = tk.Entry(editor, textvariable=activation_var)
-        activation_entry.grid(row=1, column=1, padx=5, pady=5)
+        activation_combo = ttk.Combobox(
+            editor,
+            textvariable=activation_var,
+            values=activations,
+            state="readonly"
+        )
+        activation_combo.grid(row=1, column=1, padx=5, pady=5)
+        activation_combo.current(activations.index(self.activation))
 
         def save_properties():
             try:
@@ -478,9 +919,10 @@ class Box:
             except ValueError:
                 messagebox.showerror("Invalid Value", "Neurons must be an integer.")
                 return
-            new_activation = activation_var.get().strip()
+
+            new_activation = activation_var.get()
             if not new_activation:
-                messagebox.showerror("Invalid Value", "Activation function cannot be empty.")
+                messagebox.showerror("Invalid Value", "Please select an activation function.")
                 return
 
             self.neurons = new_neurons
@@ -548,63 +990,20 @@ class Box:
         output_neurons_entry = tk.Entry(editor, textvariable=output_neurons_var)
         output_neurons_entry.grid(row=0, column=1, padx=5, pady=5)
 
-        tk.Label(editor, text="Activation:").grid(row=1, column=0, padx=5, pady=5, sticky="e")
-        activation_var = tk.StringVar(value=self.activation)
-        activation_entry = tk.Entry(editor, textvariable=activation_var)
-        activation_entry.grid(row=1, column=1, padx=5, pady=5)
-
-        tk.Label(editor, text="Optimizer:").grid(row=2, column=0, padx=5, pady=5, sticky="e")
-        optimizer_var = tk.StringVar(value=self.optimizer)
-        optimizer_entry = tk.Entry(editor, textvariable=optimizer_var)
-        optimizer_entry.grid(row=2, column=1, padx=5, pady=5)
-
-        tk.Label(editor, text="Loss Function:").grid(row=3, column=0, padx=5, pady=5, sticky="e")
-        loss_var = tk.StringVar(value=self.loss)
-        loss_entry = tk.Entry(editor, textvariable=loss_var)
-        loss_entry.grid(row=3, column=1, padx=5, pady=5)
-
-        # (entered as a comma-separated string)
-        tk.Label(editor, text="Metrics (comma separated):").grid(row=4, column=0, padx=5, pady=5, sticky="e")
-        metrics_str = ", ".join(self.metrics) if self.metrics else ""
-        metrics_var = tk.StringVar(value=metrics_str)
-        metrics_entry = tk.Entry(editor, textvariable=metrics_var)
-        metrics_entry.grid(row=4, column=1, padx=5, pady=5)
-
         def save_inputs():
             try:
                 new_output_neurons = int(output_neurons_var.get())
             except ValueError:
                 messagebox.showerror("Invalid Value", "Neurons must be an integer.")
                 return
-            new_activation = activation_var.get().strip()
-            if not new_activation:
-                messagebox.showerror("Invalid Value", "Activation function cannot be empty.")
-                return
-
-            new_optimizer = optimizer_var.get().strip()
-            if not new_optimizer:
-                messagebox.showerror("Invalid Value", "Optimizer cannot be empty.")
-                return
-
-            new_loss = loss_var.get().strip()
-            if not new_loss:
-                messagebox.showerror("Invalid Value", "Loss function cannot be empty.")
-                return
-
-            new_metrics_str = metrics_var.get().strip()
-            new_metrics = [m.strip() for m in new_metrics_str.split(',')] if new_metrics_str else []
 
             self.outputs = new_output_neurons
-            self.activation = new_activation
-            self.optimizer = new_optimizer
-            self.loss = new_loss
-            self.metrics = new_metrics
 
             self.change_label()
             editor.destroy()
 
         save_btn = tk.Button(editor, text="Save", command=save_inputs)
-        save_btn.grid(row=5, column=0, columnspan=2, pady=10)
+        save_btn.grid(row=1, column=0, columnspan=2, pady=10)
 
     def open_transformer_layer_editor(self):
         editor = tk.Toplevel(self.canvas)
@@ -685,7 +1084,10 @@ class Box:
         else:
 
             if not self.label:
-                self.label = self.canvas.create_text((self.x + self.size[0] / 2, self.y + self.size[1] / 2),
+                self.label = self.canvas.create_text((self.x + self.size[0] / 2,
+                                                      # self.y + self.size[1] / 2
+                                                      self.y + 10
+                                                      ),
                                                      text=self.label_text, fill="black", font=('Helvetica', 14))
                 self.collision_ids.append(self.label)
             else:
