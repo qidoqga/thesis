@@ -550,17 +550,24 @@ class CustomCanvas(tk.Canvas):
             self.handle_connection_click(connection, event)
 
     def start_pulling_wire(self, event):
-        if self.draw_wire_mode and self.pulling_wire:
-            if self.temp_wire is not None:
-                self.temp_wire.delete_self()
-            if self.temp_end_connection.location != (self.canvasx(event.x), self.canvasy(event.y)):
-                self.previous_x = self.canvasx(event.x)
-                self.previous_y = self.canvasy(event.y)
-                self.temp_end_connection.delete()
-                self.temp_end_connection = Connection(None, 0, None,
-                                                      (self.canvasx(event.x), self.canvasy(event.y)),
-                                                      self)
+        if not (self.draw_wire_mode and self.pulling_wire):
+            return
+        print(not hasattr(self.temp_wire, '_initialized'))
+        if self.temp_wire is not None and not hasattr(self.temp_wire, '_initialized'):
+            self.temp_wire.delete_self()
+            self.temp_wire = None
+
+        if self.temp_end_connection.location != (self.canvasx(event.x), self.canvasy(event.y)):
+            self.previous_x = self.canvasx(event.x)
+            self.previous_y = self.canvasy(event.y)
+            self.temp_end_connection.delete()
+            self.temp_end_connection = Connection(None, 0, None,
+                                                  (self.canvasx(event.x), self.canvasy(event.y)),
+                                                  self)
+        if self.temp_wire is None:
             self.temp_wire = Wire(self, self.current_wire_start, self.receiver, self.temp_end_connection, None, True)
+        else:
+            self.temp_wire.update()
 
     def handle_connection_click(self, c, event):
         if c.has_wire or not self.draw_wire_mode:
