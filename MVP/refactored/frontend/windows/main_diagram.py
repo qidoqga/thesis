@@ -123,6 +123,15 @@ class MainDiagram(tk.Tk):
         self.dropdown_button.pack(side=tk.TOP, padx=5, pady=5)
         self.update_dropdown_menu()
 
+        self.AI_boxes = {}
+
+        self.AI_dropdown_button = ttk.Menubutton(self.control_frame, text="Select AI Box", width=16,
+                                                 bootstyle=(PRIMARY, OUTLINE))
+        self.AI_dropdown_menu = ttk.Menu(self.AI_dropdown_button, tearoff=0)
+        self.AI_dropdown_button.config(menu=self.AI_dropdown_menu)
+        self.AI_dropdown_button.pack(side=tk.TOP, padx=5, pady=5)
+        self.update_AI_dropdown_menu()
+
         self.manage_boxes = ttk.Button(self.control_frame, text="Manage Boxes",
                                        command=self.manage_boxes_method, width=20, bootstyle=(PRIMARY, OUTLINE))
         self.manage_boxes.pack(side=tk.TOP, padx=5, pady=5)
@@ -491,6 +500,7 @@ class MainDiagram(tk.Tk):
         listbox = tk.Listbox(list_window, selectmode=tk.SINGLE)
         listbox.pack(padx=10, pady=10, fill=tk.BOTH, expand=True)
         [listbox.insert(tk.END, item) for item in self.boxes]
+        [listbox.insert(tk.END, item) for item in self.AI_boxes]
 
         button_frame = tk.Frame(list_window)
         button_frame.pack(pady=10)
@@ -547,16 +557,44 @@ class MainDiagram(tk.Tk):
         for i, name in enumerate(self.boxes):
             self.dropdown_menu.add_command(label=name, command=lambda n=name: self.boxes[n](n, self.custom_canvas))
 
+    def update_AI_dropdown_menu(self):
+        self.AI_boxes = {}
+
+        self.get_boxes_from_file()
+
+        self.AI_dropdown_menu.delete(0, tk.END)
+        self.AI_dropdown_menu.add_command(label="Add Undefined Box",
+                                          command=self.custom_canvas.add_box)
+        self.AI_dropdown_menu.add_separator()
+
+        print(self.AI_boxes)
+        for i, name in enumerate(self.AI_boxes):
+            self.AI_dropdown_menu.add_command(label=name, command=lambda n=name: self.AI_boxes[n](n, self.custom_canvas))
+
     def remove_option(self, option):
         self.project_exporter.del_box_menu_option(option)
         self.update_dropdown_menu()
+        self.update_AI_dropdown_menu()
 
     def get_boxes_from_file(self):
         d = self.importer.load_boxes_to_menu()
+
+        self.boxes = {}
+        self.AI_boxes = {}
         self.quick_create_booleans = []
-        for k in d:
-            self.boxes[k] = self.add_custom_box
+
+        for key, box_config in d.items():
+            category = box_config.get("category", "regular")
+            if category == "ai":
+                self.AI_boxes[key] = self.add_custom_box
+            else:
+                self.boxes[key] = self.add_custom_box
             self.quick_create_booleans.append(tk.BooleanVar())
+
+        # self.quick_create_booleans = []
+        # for k in d:
+        #     self.boxes[k] = self.add_custom_box
+        #     self.quick_create_booleans.append(tk.BooleanVar())
 
     def add_custom_box(self, name, canvas):
         self.importer.add_box_from_menu(canvas, name)
@@ -564,6 +602,10 @@ class MainDiagram(tk.Tk):
     def save_box_to_diagram_menu(self, box):
         self.project_exporter.export_box_to_menu(box)
         self.update_dropdown_menu()
+
+    def save_box_to_ai_diagram_menu(self, box):
+        self.project_exporter.export_box_to_menu(box)
+        self.update_AI_dropdown_menu()
 
     def set_title(self, filename):
         self.title(filename.replace(".json", ""))
