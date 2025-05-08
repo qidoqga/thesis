@@ -48,6 +48,38 @@ class Importer:
                                      self.get_id(box["id"]), shape=box.get("shape", "rectangle"))
             if box["label"]:
                 new_box.set_label(box["label"])
+
+            if box.get("neurons"):
+                new_box.neurons = box["neurons"]
+            if box.get("activation"):
+                new_box.activation = box["activation"]
+            if box.get("outputs"):
+                new_box.outputs = box["outputs"]
+            if "dropout" in box:
+                new_box.dropout = box["dropout"]
+            if box.get("out_channels"):
+                new_box.out_channels = box["out_channels"]
+            if box.get("kernel_size"):
+                new_box.kernel_size = box["kernel_size"]
+            if box.get("stride"):
+                new_box.stride = box["stride"]
+            if box.get("padding"):
+                new_box.padding = box["padding"]
+            if box.get("batch_norm"):
+                new_box.batch_norm = box["batch_norm"]
+            if box.get("pool_type"):
+                new_box.pool_type = box["pool_type"]
+            if box.get("num_layers"):
+                new_box.num_layers = box["num_layers"]
+            if box.get("bidirectional"):
+                new_box.bidirectional = box["bidirectional"]
+            if box.get("non_linearity"):
+                new_box.non_linearity = box["non_linearity"]
+            if box.get("batch_first"):
+                new_box.batch_first = box["batch_first"]
+            if box.get("seq_to_seq"):
+                new_box.seq_to_seq = box["seq_to_seq"]
+
             for c in box["connections"]:
                 if c["side"] == "left":
                     new_box.add_left_connection(self.get_id(c["id"]))

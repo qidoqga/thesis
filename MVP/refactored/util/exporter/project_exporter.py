@@ -57,13 +57,31 @@ class ProjectExporter(Exporter):
                 "y": box.y,
                 "size": box.size,
                 "label": box.label_text,
+                "neurons": box.neurons,
+                "activation": box.activation,
+                "outputs": box.outputs,
+                "dropout": box.dropout,
+                "out_channels": box.out_channels,
+                "kernel_size": box.kernel_size,
+                "stride": box.stride,
+                "padding": box.padding,
+                "pool_type": box.pool_type,
+                "num_layers": box.num_layers,
+                "bidirectional": box.bidirectional,
+                "non_linearity": box.non_linearity,
+                "batch_first": box.batch_first,
+                "seq_to_seq": box.seq_to_seq,
+
                 "connections": self.get_connections(box.connections),
                 "sub_diagram": None,
                 "locked": box.locked,
-                "shape" : box.shape
+                "shape": box.shape
             }
             if box.sub_diagram:
                 d["sub_diagram"] = self.create_canvas_dict(box.sub_diagram)
+            # if box.label_text.startswith("ffn"):
+            #     d["neurons"] = box.neurons
+            #     d["activation"] = box.activation
             boxes_list.append(d)
 
         return boxes_list
@@ -102,6 +120,7 @@ class ProjectExporter(Exporter):
             "right_c": right_connections,
             "shape": box.shape,
             "sub_diagram": None,
+            "category": box.category,
         }
         if box.sub_diagram:
             new_entry["sub_diagram"] = self.create_canvas_dict(box.sub_diagram)
