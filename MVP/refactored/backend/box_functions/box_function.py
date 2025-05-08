@@ -7,7 +7,11 @@ def get_predefined_functions() -> dict:
     base_path = os.path.join(os.path.dirname(__file__), "./predefined/")
     # List of directories to search.
     directories = [base_path, os.path.join(base_path, "transformer_split_up"),
-                   os.path.join(base_path, "transformer_split_up_1")]
+                   os.path.join(base_path, "transformer_split_up_1"),
+                   os.path.join(base_path, "ffn_DSL"),
+                   os.path.join(base_path, "cnn_DSL"),
+                   os.path.join(base_path, "rnn_DSL"),
+                   os.path.join(base_path, "transformer_DSL")]
 
     for functions_path in directories:
         if not os.path.exists(functions_path):
@@ -30,7 +34,10 @@ def safe_format(code: str, substitution_dict: dict) -> str:
     This avoids processing other curly-brace literals (like those in the meta dictionary).
     """
     for key, value in substitution_dict.items():
-        code = code.replace("{" + key + "}", str(value))
+        if key == "non_linearity":
+            code = code.replace("{" + key + "}", '"' + str(value) + '"')
+        else:
+            code = code.replace("{" + key + "}", str(value))
     return code
 
 

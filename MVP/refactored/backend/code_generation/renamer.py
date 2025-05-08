@@ -27,7 +27,7 @@ class Renamer(ast.NodeTransformer):
 
         if (node.name.startswith('__') and node.name.endswith('__')) or node.name == "forward" \
                 or node.name.startswith('set_') or node.name.startswith('build') or node.name.startswith('get_') \
-                or node.name == "add_block":
+                or node.name == "add_block" or node.name.startswith('_'):
             return node
 
         if node.name == self.target_name:

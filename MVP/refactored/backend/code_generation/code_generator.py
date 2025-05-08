@@ -53,10 +53,16 @@ class CodeGenerator:
                 substitution_dict = {}
                 print(box.label_text)
                 print("#############################")
-                if "layer" in box.label_text or "transformer":
+                if "layer" in box.label_text or "transformer" or "ffn" in box.label_text or "cnn" in box.label_text \
+                        or "rnn" in box.label_text:
                     substitution_dict = {'neurons': box.neurons, 'activation': box.activation, 'inputs': box.inputs,
                                          'optimizer': box.optimizer, 'loss': box.loss, 'metrics': box.metrics,
-                                         'outputs': box.outputs,
+                                         'outputs': box.outputs, 'dropout': box.dropout,
+                                         'out_channels': box.out_channels, 'kernel_size': box.kernel_size,
+                                         'stride': box.stride, 'padding': box.padding, 'pool_type': box.pool_type,
+                                         'num_layers': box.num_layers, 'bidirectional': box.bidirectional,
+                                         'non_linearity': box.non_linearity, 'batch_first': box.batch_first,
+                                         'seq_to_seq': box.seq_to_seq,
                                          'num_heads': box.num_heads, 'num_encoder_layers': box.num_encoder_layers,
                                          'num_decoder_layers': box.num_decoder_layers}
                 box_function = BoxFunction(box.label_text, code=code_template, substitution_dict=substitution_dict)
