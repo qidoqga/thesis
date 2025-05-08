@@ -8,7 +8,7 @@ def invoke(vocab_size, model_dim):
 
 
 meta = {
-    "name": "Embedding Layer",
+    "name": "Embedding Layer 1",
     "min_args": 2,
     "max_args": 2
 }

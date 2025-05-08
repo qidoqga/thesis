@@ -22,25 +22,33 @@ class TransformerModel(nn.Module):
 
     def forward(self, src, tgt, src_mask=None, tgt_mask=None,
                 src_key_padding_mask=None, tgt_key_padding_mask=None):
-        # Embed the source and target tokens and add positional encodings.
-        src_emb = self.pos_encoding(self.embedding(src))
-        tgt_emb = self.pos_encoding(self.embedding(tgt))
+        if self.encoder_stack and self.decoder_stack:
+            src_emb = self.pos_encoding(self.embedding(src))
+            tgt_emb = self.pos_encoding(self.embedding(tgt))
+            enc_output = src_emb
+            for encoder_layer in self.encoder_stack:
+                enc_output = encoder_layer(enc_output, mask=src_mask,
+                                           key_padding_mask=src_key_padding_mask)
+            dec_output = tgt_emb
+            for decoder_layer in self.decoder_stack:
+                dec_output = decoder_layer(dec_output, enc_output,
+                                           tgt_mask=tgt_mask,
+                                           tgt_key_padding_mask=tgt_key_padding_mask,
+                                           memory_key_padding_mask=src_key_padding_mask)
+            return self.output_head(dec_output)
+        elif self.encoder_stack:
+            x = self.pos_encoding(self.embedding(src))
+            for layer in self.encoder_stack:
+                x = layer(x, mask=src_mask, key_padding_mask=src_key_padding_mask)
+            return self.output_head(x)
+        elif self.decoder_stack:
+            x = self.pos_encoding(self.embedding(tgt))
+            for layer in self.decoder_stack:
+                x = layer(x, memory=None, tgt_mask=tgt_mask, tgt_key_padding_mask=tgt_key_padding_mask,
+                          memory_key_padding_mask=src_key_padding_mask)
+            return self.output_head(x)
 
-        # Pass the source embeddings through the encoder stack.
-        enc_output = src_emb
-        for encoder_layer in self.encoder_stack:
-            enc_output = encoder_layer(enc_output, mask=src_mask, key_padding_mask=src_key_padding_mask)
-
-        # In a complete Transformer, the decoder would use cross-attention to attend to enc_output.
-        # Since our custom decoder layer as built here does not include cross-attention,
-        # we only pass the target embeddings through the decoder stack.
-        dec_output = tgt_emb
-        for decoder_layer in self.decoder_stack:
-            dec_output = decoder_layer(dec_output, tgt_mask=tgt_mask, tgt_key_padding_mask=tgt_key_padding_mask)
-
-        # Compute final outputs (e.g., logits over the vocabulary).
-        output = self.output_head(dec_output)
-        return output
+        raise RuntimeError("No encoder or decoder layers defined")
 
 
 def invoke(builder):
