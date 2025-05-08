@@ -96,3 +96,31 @@ if __name__ == "__main__":
 
     # summary
     summary(model, input_data=(src, tgt))
+
+# for FFN
+if __name__ == "__main__":
+    model = main(10)
+    summary(
+        model,
+        input_size=(8, 10),
+        # explicitly ask it to print input_size as a column
+        col_names=("input_size", "output_size", "num_params")
+    )
+
+# for CNN
+if __name__ == "__main__":
+    model = main((3, 32, 32))
+    summary(
+        model,
+        input_size=(8, 3, 32, 32),
+        col_names=("input_size", "output_size", "num_params")
+    )
+
+# for RNN
+if __name__ == "__main__":
+    model = main(10)
+    summary(
+        model,
+        input_size=(8, 20, 10),
+        col_names=("input_size", "output_size", "num_params")
+    )
