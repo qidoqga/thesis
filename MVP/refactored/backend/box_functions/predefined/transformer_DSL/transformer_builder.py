@@ -3,7 +3,7 @@ import torch.nn as nn
 
 
 class TransformerModelBuilder:
-    def __init__(self, model_dim, vocab_size, num_heads=8, num_layers=3, dropout=0.1, max_len=500, d_ff=2048):
+    def __init__(self, model_dim, vocab_size, num_heads=8, activation='relu', dropout=0.1, max_len=500, d_ff=2048):
         self.model_dim = model_dim
         self.embedding_layer = None
         self.positional_encoding_layer = None
@@ -14,13 +14,13 @@ class TransformerModelBuilder:
         self.decoder_stack = []
         self.vocab_size = vocab_size
         self.num_heads = num_heads
-        self.num_layers = num_layers
         self.dropout = dropout
         self.max_len = max_len
         self.d_ff = d_ff
 
         self.encoder_builder = None
         self.decoder_builder = None
+        self.activation = activation
         self.activation_in_encoder = "relu"
         self.activation_in_decoder = "relu"
 
@@ -64,9 +64,6 @@ class TransformerModelBuilder:
 
     def get_num_heads(self):
         return self.num_heads
-
-    def get_num_layers(self):
-        return self.num_layers
 
     def get_dropout(self):
         return self.dropout
@@ -237,8 +234,8 @@ class FeedForwardPipelineBuilder:
         return self.builder
 
 
-def invoke(model_dim, vocab_size, num_heads=8, num_layers=3, dropout=0.1, max_len=500, d_ff=2048):
-    return TransformerModelBuilder(model_dim, vocab_size, num_heads, num_layers, dropout, max_len, d_ff)
+def invoke(model_dim, vocab_size, num_heads=8, activation='relu', dropout=0.1, max_len=500, d_ff=2048):
+    return TransformerModelBuilder(model_dim, vocab_size, num_heads, activation, dropout, max_len, d_ff)
 
 
 meta = {
