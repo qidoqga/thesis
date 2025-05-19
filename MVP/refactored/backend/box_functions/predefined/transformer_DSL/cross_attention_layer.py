@@ -1,6 +1,6 @@
 
 
-def invoke(ca_builder):
+def invoke(ca_builder, *args):
     transformer_builder = ca_builder.get_builder()
 
     d_model = transformer_builder.get_model_dim()
@@ -16,5 +16,5 @@ def invoke(ca_builder):
 meta = {
     "name": "Cross Attention Layer",
     "min_args": 1,
-    "max_args": 1
+    "max_args": 2
 }

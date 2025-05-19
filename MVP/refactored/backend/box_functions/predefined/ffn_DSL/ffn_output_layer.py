@@ -1,6 +1,6 @@
 
 def invoke(builder):
-    return builder._add_output_layer({outputs})
+    return builder._add_output_layer({outputs}, activation={activation})
 
 
 meta = {

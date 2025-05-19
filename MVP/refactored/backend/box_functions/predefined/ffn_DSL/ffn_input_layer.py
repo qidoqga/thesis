@@ -26,12 +26,15 @@ class FeedForwardNNBuilder:
 
     def _add_output_layer(
         self,
-        output_dim
+        output_dim,
+        activation
     ):
 
         if self._built:
             raise RuntimeError("Output layer has already been added.")
         self.layers.append(nn.Linear(self.prev_dim, output_dim))
+        if activation:
+            self.layers.append(activation())
         model = nn.Sequential(*self.layers)
         self._built = True
         return model

@@ -1,7 +1,8 @@
 import json
+import os
 import re
 import tkinter as tk
-from tkinter import messagebox, ttk
+from tkinter import messagebox, ttk, Toplevel, Message
 from tkinter import simpledialog
 
 from MVP.refactored.frontend.canvas_objects.connection import Connection
@@ -78,6 +79,8 @@ class Box:
 
         self.category = None
 
+        self.info_text = ""
+
     def set_id(self, id_):
         if self.receiver.listener and not self.canvas.search:
             self.receiver.receiver_callback("box_swap_id", generator_id=self.id, connection_id=id_)
@@ -108,6 +111,12 @@ class Box:
             except Exception as e:
                 print("Error destroying menu:", e)
         self.context_menu = tk.Menu(self.canvas, tearoff=0)
+
+        self.context_menu.add_separator()
+        self.context_menu.add_command(
+            label="Info",
+            command=lambda ev=event: self.show_info(ev)
+        )
 
         if not self.sub_diagram:
             self.context_menu.add_command(label="Add code", command=self.open_editor)
@@ -186,6 +195,44 @@ class Box:
         self.context_menu.add_separator()
         self.context_menu.add_command(label="Cancel")
         self.context_menu.tk_popup(event.x_root, event.y_root)
+
+    def show_info(self, ev=None):
+        root = self.canvas.winfo_toplevel()
+
+        info_win = Toplevel(root)
+        info_win.title(f"Info: {self.label_text or 'Box'}")
+
+        info_win.transient(root)
+        info_win.attributes("-topmost", True)
+
+        INFO_FILE = os.path.abspath(
+                os.path.join(os.path.dirname(__file__), '..', 'resources', 'box_info.json')
+            )
+
+        try:
+            with open(INFO_FILE, 'r', encoding='utf-8') as f:
+                        BOX_INFO_MAP = json.load(f)
+        except (FileNotFoundError, json.JSONDecodeError):
+            BOX_INFO_MAP = {}
+
+        default_info = f"Label: {self.label_text or '<none>'}"
+        template = BOX_INFO_MAP.get(self.label_text, default_info)
+        try:
+            self.info_text = template.format_map(vars(self))
+        except Exception:
+            self.info_text = template
+
+        try:
+            x = ev.x_root + 10
+            y = ev.y_root + 10
+        except NameError:
+            x = root.winfo_rootx() + 50
+            y = root.winfo_rooty() + 50
+
+        info_win.geometry(f"+{x}+{y}")
+
+        msg = Message(info_win, text=self.info_text, width=300)
+        msg.pack(padx=10, pady=10, fill="both", expand=True)
 
     def unfold(self):
         if not self.sub_diagram:
@@ -990,20 +1037,53 @@ class Box:
         output_neurons_entry = tk.Entry(editor, textvariable=output_neurons_var)
         output_neurons_entry.grid(row=0, column=1, padx=5, pady=5)
 
+        tk.Label(editor, text="Activation:").grid(row=1, column=0, padx=5, pady=5, sticky="e")
+
+        activations = [
+            "None",
+            "nn.ReLU",
+            "nn.Sigmoid",
+            "nn.Tanh",
+            "nn.LeakyReLU",
+            "nn.ELU",
+            "nn.GELU",
+            "nn.Softmax",
+            "nn.LogSoftmax",
+        ]
+
+        current = str(self.activation)
+        if current not in activations:
+            activations.insert(0, current)
+
+        activation_var = tk.StringVar(value=self.activation)
+        activation_combo = ttk.Combobox(
+            editor,
+            textvariable=activation_var,
+            values=activations,
+            state="readonly"
+        )
+        activation_combo.grid(row=1, column=1, padx=5, pady=5)
+        activation_combo.current(activations.index(self.activation))
+
         def save_inputs():
             try:
                 new_output_neurons = int(output_neurons_var.get())
             except ValueError:
                 messagebox.showerror("Invalid Value", "Neurons must be an integer.")
                 return
+            new_activation = activation_var.get().strip()
+            if not new_activation:
+                messagebox.showerror("Invalid Value", "Activation function cannot be empty.")
+                return
 
             self.outputs = new_output_neurons
+            self.activation = new_activation
 
             self.change_label()
             editor.destroy()
 
         save_btn = tk.Button(editor, text="Save", command=save_inputs)
-        save_btn.grid(row=1, column=0, columnspan=2, pady=10)
+        save_btn.grid(row=2, column=0, columnspan=2, pady=10)
 
     def open_transformer_layer_editor(self):
         editor = tk.Toplevel(self.canvas)
